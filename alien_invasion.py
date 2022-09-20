@@ -202,7 +202,7 @@ class AlienInvasion:
             pygame.mouse.set_visible(False)
 
     def _save_hiscore(self):
-        with open("hiscore.json", 'w') as f:
+        with open("save_data/hiscore.json", 'w') as f:
             json.dump(self.stats.high_score, f)
 
 

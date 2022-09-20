@@ -2,6 +2,7 @@ import sys
 from time import sleep
 
 import pygame
+import json
 
 
 from settings import Settings
@@ -10,6 +11,7 @@ from bullet import Bullet
 from alien import Alien
 from game_stat import GameStat
 from button import Button
+from scoreboard import Scoreboard
 
 class AlienInvasion:
     """Overall Class to manage game asset and behavior"""
@@ -23,6 +25,7 @@ class AlienInvasion:
         self.settings.screen_height = self.screen.get_rect().height
         pygame.display.set_caption("Alien Invasion")
         self.stats = GameStat(self)
+        self.sb = Scoreboard(self)
         self.ship = Ship(self)
         self.bullets = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
@@ -48,6 +51,7 @@ class AlienInvasion:
     def _check_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                self._save_hiscore()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 self._check_keydown_events(event)
@@ -66,6 +70,7 @@ class AlienInvasion:
         elif event.key == pygame.K_LEFT:
             self.ship.moving_left = True
         elif event.key == pygame.K_q:
+            self._save_hiscore()
             sys.exit()
         elif event.key == pygame.K_SPACE:
             self._fire_bullet()
@@ -142,15 +147,24 @@ class AlienInvasion:
 
     def _bullet_alien_collision(self):
         collision = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
+        if collision:
+            for aliens in collision.values():
+                self.stats.score += self.settings.alien_points * len(aliens)
+            self.sb.prep_score()
+            self.sb.check_high_score()
         if not self.aliens:
             self.bullets.empty()
             self._create_fleet()
             self.settings.increase_speed()
+            # Increase level.
+            self.stats.level += 1
+            self.sb.prep_level()
 
 
     def _ship_hit(self):
         """respond to ship hit by alien"""
         self.stats.ship_left -= 1
+        self.sb.prep_ships()
         if self.stats.ship_left > 0:
 
             self.aliens.empty()
@@ -176,6 +190,9 @@ class AlienInvasion:
             self.settings.initialize_dynamic_settings()
             self.stats.reset_stats()
             self.stats.game_active = True
+            self.sb.prep_score()
+            self.sb.prep_level()
+            self.sb.prep_ships()
 
             self.aliens.empty()
             self.bullets.empty()
@@ -183,6 +200,11 @@ class AlienInvasion:
             self._create_fleet()
             self.ship.center_ship()
             pygame.mouse.set_visible(False)
+
+    def _save_hiscore(self):
+        with open("hiscore.json", 'w') as f:
+            json.dump(self.stats.high_score, f)
+
 
 
 
@@ -205,6 +227,7 @@ class AlienInvasion:
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()
         self.aliens.draw(self.screen)
+        self.sb.show_score()
 
         if not self.stats.game_active:
             pygame.mouse.set_visible(True)

@@ -9,6 +9,7 @@ from ship import Ship
 from bullet import Bullet
 from alien import Alien
 from game_stat import GameStat
+from button import Button
 
 class AlienInvasion:
     """Overall Class to manage game asset and behavior"""
@@ -28,6 +29,7 @@ class AlienInvasion:
 
 
         self._create_fleet()
+        self.play_button = Button(self, "Play")
 
     def run_game(self):
         """Start the main loop for the game"""
@@ -51,6 +53,10 @@ class AlienInvasion:
                 self._check_keydown_events(event)
             elif event.type == pygame.KEYUP:
                 self._check_keyup_events(event)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                self._check_play_button(mouse_pos)
+
 
 
 
@@ -78,6 +84,7 @@ class AlienInvasion:
             self.bullets.add(new_bullet)
 
     def _update_bulltes(self):
+        self.bullets.update()
         for bullet in self.bullets.copy():
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
@@ -138,6 +145,8 @@ class AlienInvasion:
         if not self.aliens:
             self.bullets.empty()
             self._create_fleet()
+            self.settings.increase_speed()
+
 
     def _ship_hit(self):
         """respond to ship hit by alien"""
@@ -161,6 +170,22 @@ class AlienInvasion:
                 self._ship_hit()
                 break
 
+    def _check_play_button(self, mouse_pos):
+        button_clicked = self.play_button.rect.collidepoint(mouse_pos)
+        if button_clicked and not self.stats.game_active:
+            self.settings.initialize_dynamic_settings()
+            self.stats.reset_stats()
+            self.stats.game_active = True
+
+            self.aliens.empty()
+            self.bullets.empty()
+
+            self._create_fleet()
+            self.ship.center_ship()
+            pygame.mouse.set_visible(False)
+
+
+
 
 
 
@@ -180,6 +205,10 @@ class AlienInvasion:
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()
         self.aliens.draw(self.screen)
+
+        if not self.stats.game_active:
+            pygame.mouse.set_visible(True)
+            self.play_button.draw_button()
 
         pygame.display.flip()
 
